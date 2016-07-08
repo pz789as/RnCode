@@ -120,7 +120,7 @@ class CoverFlow extends Component {
 		var max = 0;
 		var velocity = vx;
 		if (!horizontal) velocity = vy;
-
+		var endX = 0;
 		anim.flattenOffset();
 		// 结束时的处理
 		if (anim._value < min) {
@@ -129,15 +129,16 @@ class CoverFlow extends Component {
 				toValue: min,
 				velocity,
 			}).start();
+			endX = min;
 		} else if (anim._value > max) {
 			Animated.spring(anim, {
 				...this.props.overshootSpringConfig,
 				toValue: max,
 				velocity,
 			}).start();
+			endX = max;
 		} else {
-			console.log("End!");
-			var endX = this.momentumCenter(anim._value, velocity, frameSpace);
+			endX = this.momentumCenter(anim._value, velocity, frameSpace);
 			endX = Math.max(endX, min);
 			endX = Math.min(endX, max);
 			var bounds = [endX - frameSpace / 2, endX + frameSpace / 2];
@@ -151,10 +152,20 @@ class CoverFlow extends Component {
 						toValue: endX,
 						velocity: endV,
 					}).start();
+				} else if (value < min) {
+					Animated.spring(anim, {
+						...this.props.overshootSpringConfig,
+						toValue: min,
+						endV,
+					}).start();
+				} else if (value > max) {
+					Animated.spring(anim, {
+						...this.props.overshootSpringConfig,
+						toValue: max,
+						endV,
+					}).start();
 				}
 			});
-
-			console.log('EndX: '+endX+"\tV: "+Math.abs(velocity)+'\tValue: '+anim._value);
 
 			Animated.decay(anim, {
 				...this.props.momentumDecayConfig,
@@ -163,11 +174,15 @@ class CoverFlow extends Component {
 				anim.removeListener(this._listener);
 			});
 		}
+		SelectId = -(endX/frameSpace);
+		this.props.getSelectIndex(SelectId);
 	}
 	// 保证中心位置
 	closestCenter(x, spacing) {
-		var plus = (x % spacing) < spacing / 2 ? 0 : spacing;
-		return Math.floor(x / spacing) * spacing + plus;
+		var plus = (Math.abs(x % spacing)) < spacing / 2 ? 0 : spacing;
+		var endX = (parseInt(x / spacing)) * spacing - plus;
+		// return Math.floor(x / spacing) * spacing + plus;
+		return endX;
 	}
 	// 确定结束位置
 	momentumCenter(x0, vx, spacing) {
@@ -255,6 +270,10 @@ const styles = StyleSheet.create({
 	},
 	horizontal: {
 		flexDirection: 'row',
+	},
+	text: {
+		alignItems: 'center',
+		height: 50,
 	}
 });
 
